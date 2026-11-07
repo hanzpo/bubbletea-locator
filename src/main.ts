@@ -1,7 +1,8 @@
-import { Map as MapView, Marker, NavigationControl, setWorkerUrl, type GeoJSONSource, type LngLatLike } from "maplibre-gl";
+import { AttributionControl, Map as MapView, Marker, NavigationControl, setWorkerUrl, type GeoJSONSource, type LngLatLike } from "maplibre-gl";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
+import { createSheet } from "./sheet";
 
 setWorkerUrl(workerUrl);
 
@@ -34,6 +35,7 @@ const chainsEl = $("chains");
 const q = $<HTMLInputElement>("q");
 const results = $<HTMLUListElement>("results");
 const locateBtn = $<HTMLButtonElement>("locate");
+const sheet = createSheet(panel, body, chainsEl, $("grab"));
 
 const esc = (s: string) =>
   s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -63,8 +65,12 @@ const map = new MapView({
   center: [-40, 30],
   zoom: 1.6,
   hash: true,
-  attributionControl: { compact: true, customAttribution: "Shops: OpenStreetMap, Overture Maps, Molly Tea" },
+  attributionControl: false,
 });
+map.addControl(
+  new AttributionControl({ compact: true, customAttribution: "Shops: OpenStreetMap, Overture Maps, Molly Tea" }),
+  sheet.isMobile() ? "top-right" : "bottom-right",
+);
 map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
 
 const pinned = new Marker({ color: "#0a66d6", scale: 0.7 });
@@ -85,7 +91,7 @@ function geojson(): GeoJSON.FeatureCollection {
 }
 
 function renderChains() {
-  const shown = expanded ? chains : chains.filter((c, i) => i < 6 || active.has(c.id));
+  const shown = expanded || sheet.isMobile() ? chains : chains.filter((c, i) => i < 6 || active.has(c.id));
   chainsEl.innerHTML =
     `<button class="chip" data-id="" aria-pressed="${active.size === 0}">All</button>` +
     shown
@@ -144,7 +150,7 @@ function select(s: Store | null, fly = true) {
   selected = s;
   map.setFilter("picked", ["==", ["get", "i"], s ? s.i : -1]);
   if (!s) return renderList();
-  panel.classList.remove("small");
+  if (sheet.isMobile()) sheet.snap("half");
   renderDetail(s);
   if (fly) map.easeTo({ center: [s.lon, s.lat], zoom: Math.max(map.getZoom(), 14), padding: pad() });
 }
@@ -152,7 +158,7 @@ function select(s: Store | null, fly = true) {
 function pad() {
   return innerWidth > 720
     ? { left: 384, top: 0, right: 0, bottom: 0 }
-    : { left: 0, top: 0, right: 0, bottom: panel.offsetHeight };
+    : { left: 0, top: 0, right: 0, bottom: sheet.visible() };
 }
 
 function goTo(center: LngLatLike, zoom: number) {
@@ -166,6 +172,7 @@ function locate() {
       locateBtn.removeAttribute("aria-busy");
       me = { lat: coords.latitude, lon: coords.longitude };
       q.value = "";
+      if (sheet.stop !== "half") sheet.snap("half");
       pinned.setLngLat([me.lon, me.lat]).addTo(map);
       select(null);
       goTo([me.lon, me.lat], 12.5);
@@ -194,8 +201,10 @@ async function setup() {
     source: sources[r[10]],
   }));
   renderChains();
+  sheet.init();
 
   if (!map.loaded()) await new Promise((r) => map.once("load", r));
+  if (sheet.isMobile()) document.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");
   map.addSource("stores", {
     type: "geojson",
     data: geojson(),
@@ -295,7 +304,7 @@ body.addEventListener("click", (e) => {
 });
 
 locateBtn.addEventListener("click", locate);
-$("grab").addEventListener("click", () => panel.classList.toggle("small"));
+q.addEventListener("focus", () => sheet.isMobile() && sheet.snap("full"));
 
 type Hit = { lat: number; lon: number; title: string; sub: string; zoom: number };
 let timer = 0;
@@ -329,6 +338,8 @@ async function geocode(text: string) {
     const h = hits[+b.dataset.h!];
     results.hidden = true;
     q.value = h.title;
+    q.blur();
+    if (sheet.isMobile()) sheet.snap("half");
     select(null);
     goTo([h.lon, h.lat], h.zoom);
   };

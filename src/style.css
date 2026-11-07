@@ -95,18 +95,28 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 
 @media (max-width: 720px) {
   #panel {
-    top: auto; left: 0; right: 0; bottom: 0; width: auto;
-    height: 46dvh; border-radius: 14px 14px 0 0;
+    top: calc(env(safe-area-inset-top) + 10px); left: 0; right: 0; bottom: 0; width: auto;
+    border-radius: 14px 14px 0 0;
     padding-bottom: env(safe-area-inset-bottom);
-    transition: height .2s ease;
+    box-shadow: 0 -1px 10px rgb(0 0 0 / .14);
+    will-change: transform;
   }
-  #panel.small { height: 132px; }
-  #grab { display: block; flex: none; width: 100%; height: 18px; position: relative; }
+  #grab { display: block; flex: none; width: 100%; height: 20px; position: relative; touch-action: none; }
   #grab::after {
-    content: ""; position: absolute; top: 7px; left: 50%; width: 36px; height: 4px;
-    margin-left: -18px; border-radius: 2px; background: #c7c7cc;
+    content: ""; position: absolute; top: 7px; left: 50%; width: 36px; height: 5px;
+    margin-left: -18px; border-radius: 3px; background: #c7c7cc;
   }
-  .search { padding-top: 0; }
+  .search { padding-top: 0; touch-action: none; }
   #q { font-size: 16px; }
-  .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-top-right { display: none; }
+  #chains {
+    flex-wrap: nowrap; max-height: none; overflow-x: auto; overflow-y: hidden;
+    touch-action: pan-x; scrollbar-width: none;
+  }
+  #chains::-webkit-scrollbar { display: none; }
+  .chip.more { display: none; }
+  #body { overflow-y: hidden; touch-action: none; }
+  #panel.full #body { overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; }
+  #panel.full.top #body { touch-action: pan-down; }
+  .maplibregl-ctrl-group { display: none; }
+  .maplibregl-ctrl-top-right { top: env(safe-area-inset-top); }
 }
