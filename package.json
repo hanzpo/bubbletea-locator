@@ -1,0 +1,19 @@
+{
+  "name": "bubbletea-locator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "data": "bash scripts/fetch.sh && bun scripts/build-data.ts",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "maplibre-gl": "^6.16.0"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6"
+  }
+}

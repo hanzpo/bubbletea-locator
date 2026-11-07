@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Boba Map</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="map"></div>
+    <aside id="panel">
+      <div id="grab" aria-hidden="true"></div>
+      <div class="search">
+        <input id="q" type="search" placeholder="Search a place" autocomplete="off" aria-label="Search a place" />
+        <button id="locate" type="button" aria-label="Use my location">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M21.4 2.6a1 1 0 0 0-1.1-.2L3 10.2a1 1 0 0 0 .1 1.9l7.2 2 2 7.2a1 1 0 0 0 1.9.1l7.8-17.3a1 1 0 0 0-.6-1.5Z"/></svg>
+        </button>
+        <ul id="results" hidden></ul>
+      </div>
+      <div id="chains"></div>
+      <div id="body"></div>
+    </aside>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
