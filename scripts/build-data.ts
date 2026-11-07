@@ -4,8 +4,8 @@ type Chain = { id: string; name: string; color: string; match: RegExp };
 
 const CHAINS: Chain[] = [
   { id: "heytea", name: "Heytea", color: "#3a3a3c", match: /hey ?tea|喜茶/i },
-  { id: "molly", name: "Molly Tea", color: "#2e9e6b", match: /molly ?tea|茉莉奶白/i },
-  { id: "hero", name: "Hero Tea", color: "#d6312b", match: /hero ?tea|英歌魂/i },
+  { id: "molly", name: "Molly Tea", color: "#2e9e6b", match: /\bmolly ?tea\b|茉莉奶白/i },
+  { id: "hero", name: "Hero Tea", color: "#d6312b", match: /^hero tea\b(?! (stall|shop))|英歌魂/i },
   { id: "coco", name: "CoCo", color: "#f28c28", match: /^(coco|都可|coco ?都可)$|^coco ?(fresh|tea|bubble|都可)|^都可/i },
   { id: "chatime", name: "Chatime", color: "#6b3fa0", match: /chatime|日出茶太/i },
   { id: "gongcha", name: "Gong Cha", color: "#8c2f39", match: /gong ?cha|貢茶|贡茶|공차/i },
@@ -14,7 +14,7 @@ const CHAINS: Chain[] = [
   { id: "sharetea", name: "Sharetea", color: "#1f77b4", match: /share ?tea|歇脚亭/i },
   { id: "tigersugar", name: "Tiger Sugar", color: "#7a4a21", match: /tiger ?sugar|老虎堂/i },
   { id: "alley", name: "The Alley", color: "#c2679f", match: /^the alley\b|鹿角巷/i },
-  { id: "yifang", name: "Yi Fang", color: "#4f7f3a", match: /yi ?fang|一芳/i },
+  { id: "yifang", name: "Yi Fang", color: "#4f7f3a", match: /\byi ?fang|一芳(?!園)/i },
   { id: "happylemon", name: "Happy Lemon", color: "#a8a800", match: /happy ?lemon|快乐柠檬|快樂檸檬/i },
   { id: "xingfutang", name: "Xing Fu Tang", color: "#9c6b3f", match: /xing ?fu ?tang/i },
   { id: "tealive", name: "Tealive", color: "#e0559b", match: /tealive/i },
@@ -25,12 +25,16 @@ const CHAINS: Chain[] = [
   { id: "bober", name: "Bober Tea", color: "#00838f", match: /bober ?tea/i },
   { id: "tptea", name: "TP Tea", color: "#607d3b", match: /\btp ?tea\b|茶湯會/i },
   { id: "truedan", name: "Truedan", color: "#ad1457", match: /truedan/i },
-  { id: "dingtea", name: "Ding Tea", color: "#5d4037", match: /ding ?tea\b/i },
+  { id: "dingtea", name: "Ding Tea", color: "#5d4037", match: /\bding ?tea\b/i },
   { id: "bobaguys", name: "Boba Guys", color: "#00695c", match: /boba ?guys/i },
 ];
 
 const NOT_BOBA = /ichibanya|壱番屋|coco ?mart|coco ?nut|cocoa/i;
-const DRINK_CAT = /tea|bubble|boba|cafe|coffee|juice|smoothie|dessert|beverage|drink|food|restaurant|snack|ice_cream/i;
+const DRINK_CAT = /^(bubble_tea_shop|tea_room|cafe|coffee_shop|smoothie_juice_bar|ice_cream_shop|dessert_shop|food_and_drink|restaurant|taiwanese_restaurant|chinese_restaurant)$/;
+const STRICT_CAT = /^(bubble_tea_shop|tea_room|coffee_shop|smoothie_juice_bar)$/;
+const GENERIC_NAME = new Set(["alley", "coco"]);
+const ALWAYS_KEEP = /英歌魂|鹿角巷/;
+const REBRANDED = /mollyteanyofficial|mollyteausaofficial/i;
 const OSM_OK = (t: Record<string, string>) =>
   /cafe|fast_food|restaurant|ice_cream/.test(t.amenity ?? "") || /beverages|tea|confectionery/.test(t.shop ?? "");
 
@@ -48,7 +52,7 @@ type Row = {
   source: number;
 };
 
-const SOURCES = ["Official store list", "OpenStreetMap", "Overture Maps"];
+const SOURCES = ["Official store list", "OpenStreetMap", "Overture Maps", "Third-party listing"];
 const clean = (s: unknown) => (typeof s === "string" ? s.replace(/\s+/g, " ").trim() : "");
 const round = (n: number) => Math.round(n * 1e5) / 1e5;
 const chainOf = (...names: unknown[]) => {
@@ -101,10 +105,13 @@ for (const e of read("data/raw/osm.json").elements ?? []) {
 
 for (const p of read("data/raw/overture.json")) {
   if (p.operating_status && p.operating_status !== "open") continue;
-  if ((p.confidence ?? 0) < 0.6) continue;
-  if (!DRINK_CAT.test(`${p.cat ?? ""} ${p.basic_category ?? ""}`)) continue;
   const chain = chainOf(p.brand, p.name);
-  if (chain < 0) continue;
+  if (chain < 0 || REBRANDED.test(p.name)) continue;
+  if (!ALWAYS_KEEP.test(p.name)) {
+    if ((p.confidence ?? 0) < 0.6) continue;
+    const allowed = GENERIC_NAME.has(CHAINS[chain].id) ? STRICT_CAT : DRINK_CAT;
+    if (!allowed.test(p.cat ?? "")) continue;
+  }
   rows.push({
     chain,
     lat: p.lat,
@@ -120,7 +127,15 @@ for (const p of read("data/raw/overture.json")) {
   });
 }
 
-rows.sort((a, b) => a.source - b.source);
+for (const m of read("data/manual.json")) {
+  rows.push({ addr: "", city: "", region: "", country: "", phone: "", website: "", ...m, chain: CHAINS.findIndex((c) => c.id === m.chain), source: 3 });
+}
+
+const molly = CHAINS.findIndex((c) => c.id === "molly");
+const inNyc = (r: Row) => r.lat > 40.5 && r.lat < 40.92 && r.lon > -74.03 && r.lon < -73.7;
+const current = rows.filter((r) => !(r.chain === molly && r.source !== 0 && inNyc(r)));
+
+current.sort((a, b) => a.source - b.source);
 
 const CELL = 0.002;
 const seen = new Map<string, Row[]>();
@@ -129,7 +144,7 @@ const metres = (a: Row, b: Row) => {
   return Math.hypot(x, a.lat - b.lat) * 111320;
 };
 const kept: Row[] = [];
-for (const r of rows) {
+for (const r of current) {
   const cx = Math.floor(r.lon / CELL);
   const cy = Math.floor(r.lat / CELL);
   let dupe: Row | undefined;
@@ -164,6 +179,6 @@ writeFileSync(
 
 console.log(`${kept.length} shops from ${rows.length} rows`);
 for (const i of order) {
-  const by = [0, 1, 2].map((s) => kept.filter((r) => r.chain === i && r.source === s).length);
-  console.log(CHAINS[i].name.padEnd(14), String(counts[i]).padStart(6), ` official ${by[0]} osm ${by[1]} overture ${by[2]}`);
+  const by = [0, 1, 2, 3].map((s) => kept.filter((r) => r.chain === i && r.source === s).length);
+  console.log(CHAINS[i].name.padEnd(14), String(counts[i]).padStart(6), ` official ${by[0]} osm ${by[1]} overture ${by[2]} manual ${by[3]}`);
 }

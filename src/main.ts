@@ -46,7 +46,7 @@ function km(aLat: number, aLon: number, bLat: number, bLon: number) {
     Math.sin(dLat / 2) ** 2 + Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLon / 2) ** 2;
   return 12742 * Math.asin(Math.sqrt(h));
 }
-const fmtKm = (d: number) => (d < 1 ? `${Math.round(d * 1000)} m` : `${d < 10 ? d.toFixed(1) : Math.round(d)} km`);
+const fmtKm = (d: number) => (d < 1 ? `${Math.round(d * 1000)} m` : `${d < 10 ? d.toFixed(1) : Math.round(d).toLocaleString()} km`);
 const place = (s: Store) => [s.city, s.region, s.country].filter(Boolean).join(", ");
 
 let stores: Store[] = [];
@@ -63,7 +63,7 @@ const map = new MapView({
   center: [-40, 30],
   zoom: 1.6,
   hash: true,
-  attributionControl: { compact: true, customAttribution: "Shops: OpenStreetMap, Overture Maps" },
+  attributionControl: { compact: true, customAttribution: "Shops: OpenStreetMap, Overture Maps, Molly Tea" },
 });
 map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
 
@@ -165,6 +165,7 @@ function locate() {
     ({ coords }) => {
       locateBtn.removeAttribute("aria-busy");
       me = { lat: coords.latitude, lon: coords.longitude };
+      q.value = "";
       pinned.setLngLat([me.lon, me.lat]).addTo(map);
       select(null);
       goTo([me.lon, me.lat], 12.5);
