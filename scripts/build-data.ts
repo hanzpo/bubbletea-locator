@@ -27,6 +27,7 @@ const CHAINS: Chain[] = [
   { id: "truedan", name: "Truedan", color: "#ad1457", match: /truedan/i },
   { id: "dingtea", name: "Ding Tea", color: "#5d4037", match: /\bding ?tea\b/i },
   { id: "bobaguys", name: "Boba Guys", color: "#00695c", match: /boba ?guys/i },
+  { id: "nowtea", name: "Now Tea", color: "#19a7a0", match: /^now ?tea\b/i },
 ];
 
 const NOT_BOBA = /ichibanya|壱番屋|coco ?mart|coco ?nut|cocoa/i;
@@ -52,7 +53,7 @@ type Row = {
   source: number;
 };
 
-const SOURCES = ["Official store list", "OpenStreetMap", "Overture Maps", "Third-party listing"];
+const SOURCES = ["Official store list", "OpenStreetMap", "Overture Maps", "Added by hand"];
 const clean = (s: unknown) => (typeof s === "string" ? s.replace(/\s+/g, " ").trim() : "");
 const round = (n: number) => Math.round(n * 1e5) / 1e5;
 const chainOf = (...names: unknown[]) => {
@@ -133,7 +134,12 @@ for (const m of read("data/manual.json")) {
 
 const molly = CHAINS.findIndex((c) => c.id === "molly");
 const inNyc = (r: Row) => r.lat > 40.5 && r.lat < 40.92 && r.lon > -74.03 && r.lon < -73.7;
-const current = rows.filter((r) => !(r.chain === molly && r.source !== 0 && inNyc(r)));
+const excluded = (r: Row) =>
+  read("data/exclude.json").some(
+    (x: { chain: string; lat: number; lon: number }) =>
+      CHAINS[r.chain].id === x.chain && Math.hypot((r.lon - x.lon) * Math.cos((r.lat * Math.PI) / 180), r.lat - x.lat) * 111320 < 50,
+  );
+const current = rows.filter((r) => !(r.chain === molly && r.source !== 0 && inNyc(r)) && !excluded(r));
 
 current.sort((a, b) => a.source - b.source);
 

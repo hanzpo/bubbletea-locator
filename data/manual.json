@@ -1,12 +1,8 @@
 [
-  {
-    "chain": "hero",
-    "name": "Hero Tea Ottawa",
-    "lat": 45.4269397,
-    "lon": -75.6893365,
-    "addr": "399 Dalhousie St",
-    "city": "Ottawa",
-    "region": "ON",
-    "country": "Canada"
-  }
+  { "chain": "hero", "name": "Hero Tea Ottawa", "lat": 45.42694, "lon": -75.68934, "addr": "399 Dalhousie St", "city": "Ottawa", "region": "ON", "country": "Canada" },
+  { "chain": "hero", "name": "Hero Tea Waterloo", "lat": 43.47154, "lon": -80.53839, "addr": "170 University Ave W, Unit 32", "city": "Waterloo", "region": "ON", "country": "Canada" },
+  { "chain": "heytea", "name": "Heytea Waterloo", "lat": 43.4731, "lon": -80.53678, "addr": "250 Phillip St, Unit D", "city": "Waterloo", "region": "ON", "country": "Canada" },
+  { "chain": "nowtea", "name": "Now Tea", "lat": 43.47568, "lon": -80.53599, "addr": "280 Lester St #106", "city": "Waterloo", "region": "ON", "country": "Canada", "phone": "+1 519-885-2808", "website": "https://nowtea.shop" },
+  { "chain": "nowtea", "name": "Now Tea", "lat": 43.84318, "lon": -79.38665, "addr": "505 Hwy 7", "city": "Markham", "region": "ON", "country": "Canada" },
+  { "chain": "coco", "name": "CoCo Fresh Tea & Juice Sunrise", "lat": 43.41895, "lon": -80.46833, "addr": "1450 Block Line Rd", "city": "Kitchener", "region": "ON", "country": "Canada" }
 ]
